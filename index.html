@@ -98,6 +98,16 @@
         <!-- Dynamic Content Container -->
         <div id="certificate-view" class="w-full flex flex-col items-center hidden">
             
+            <!-- Verified Header -->
+            <div class="w-full flex justify-center mb-6">
+                <div class="bg-green-100 text-green-800 text-sm font-semibold px-4 py-2 rounded-full flex items-center gap-2 shadow-sm border border-green-200">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5 text-green-600">
+                        <path fill-rule="evenodd" d="M8.603 3.799A4.49 4.49 0 0112 2.25c1.357 0 2.573.6 3.397 1.549a4.49 4.49 0 013.498 1.307 4.491 4.491 0 011.307 3.497A4.49 4.49 0 0121.75 12a4.49 4.49 0 01-1.549 3.397 4.491 4.491 0 01-1.307 3.497 4.491 4.491 0 01-3.497 1.307A4.49 4.49 0 0112 21.75a4.49 4.49 0 01-3.397-1.549 4.49 4.49 0 01-3.498-1.306 4.491 4.491 0 01-1.307-3.498A4.49 4.49 0 012.25 12c0-1.357.6-2.573 1.549-3.397a4.49 4.49 0 011.307-3.497 4.49 4.49 0 013.497-1.307zm7.007 6.387a.75.75 0 10-1.22-.872l-3.236 4.53L9.53 12.22a.75.75 0 00-1.06 1.06l2.25 2.25a.75.75 0 001.14-.094l3.75-5.25z" clip-rule="evenodd" />
+                    </svg>
+                    Verified Certificate
+                </div>
+            </div>
+
             <!-- Media Container (PDF or Image) -->
             <div id="media-container" class="w-full mb-6 shadow-md rounded-sm overflow-hidden flex flex-col bg-white border border-gray-200">
                 <!-- Rendered PDF or Image will be injected here -->
@@ -221,7 +231,7 @@
                 duration: "03:00:00",
                 examScore: "12 out of 12",
                 cpdPoints: "3",
-                assetType: "pdf" // Change to "png" if you want to test an image
+                assetType: "pdf" // Extension correctly defined here
             },
             "another_mock_id_123": {
                 courseName: "Advanced Infection Control",
@@ -237,7 +247,6 @@
 
         // --- 3. URL Search Parameter Logic ---
         document.addEventListener('DOMContentLoaded', () => {
-            // Get the 'id' parameter from the URL query string (e.g., ?id=1792213537_...)
             const urlParams = new URLSearchParams(window.location.search);
             const certId = urlParams.get('id');
 
@@ -245,30 +254,25 @@
             const loadingState = document.getElementById('loading-state');
             const mediaContainer = document.getElementById('media-container');
 
-            // Check if the ID exists in our mock database
             if (certId && certificatesDB[certId]) {
                 const data = certificatesDB[certId];
                 
-                // Hide loading state, show content
                 loadingState.classList.add('hidden');
                 viewContainer.classList.remove('hidden');
 
-                // 1. Setup Download Link
+                // 1. Setup Download Link (FIXED: Added .${data.assetType} to the end)
                 const downloadBtn = document.getElementById('download-btn');
-                const assetUrl = `assets/${certId}`;
+                const assetUrl = `assets/${certId}.${data.assetType}`;
                 downloadBtn.href = assetUrl;
 
                 // 2. Render Media (PDF via pdf.js or Image)
                 if (data.assetType === 'pdf') {
                     
-                    // Render PDF using PDF.js
                     const loadingTask = pdfjsLib.getDocument(assetUrl);
                     
                     loadingTask.promise.then(function(pdf) {
-                        // Loop through all pages (usually just 1 for a certificate)
                         for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
                             pdf.getPage(pageNum).then(function(page) {
-                                // Adjust scale to fit container width nicely
                                 const viewport = page.getViewport({ scale: 1.5 });
                                 
                                 const canvas = document.createElement('canvas');
@@ -288,11 +292,10 @@
                         }
                     }).catch(function(error) {
                         console.error("Error loading PDF: ", error);
-                        mediaContainer.innerHTML = `<p class="p-6 text-red-500 text-center">Failed to load PDF. <a href="${assetUrl}" class="underline">Click here to download instead.</a></p>`;
+                        mediaContainer.innerHTML = `<p class="p-6 text-red-500 text-center">Failed to load PDF. <a href="${assetUrl}" target="_blank" class="underline">Click here to open instead.</a></p>`;
                     });
 
                 } else if (data.assetType === 'png' || data.assetType === 'jpg') {
-                    // Render Image normally
                     mediaContainer.innerHTML = `
                         <img src="${assetUrl}" alt="Certificate for ${data.takenBy}" class="w-full h-auto object-cover">
                     `;
@@ -310,7 +313,6 @@
                     <p>CPD Points: ${data.cpdPoints}</p>
                 `;
             } else {
-                // If no 'id' parameter is found OR the ID doesn't exist in the DB, redirect immediately.
                 window.location.href = "https://wcea.education/";
             }
         });
