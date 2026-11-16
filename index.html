@@ -8,23 +8,40 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- PDF.js Library -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+    
     <style>
         body {
             font-family: 'Inter', sans-serif;
         }
         
-        /* Smooth transition for full-screen nav */
+        /* No animation for nav overlay */
         .nav-overlay {
-            transition: transform 0.3s ease-in-out, opacity 0.3s ease-in-out;
-            transform: translateX(100%);
-            opacity: 0;
-            pointer-events: none;
+            display: none; /* Hidden by default */
+            position: fixed;
+            inset: 0;
+            background-color: white;
+            z-index: 100;
+            flex-direction: column;
+            padding: 1.5rem 2rem;
+            overflow-y: auto;
         }
         
         .nav-overlay.active {
-            transform: translateX(0);
-            opacity: 1;
-            pointer-events: auto;
+            display: flex;
+        }
+
+        /* Canvas styling for PDF rendering */
+        #media-container canvas {
+            width: 100% !important;
+            height: auto !important;
+            display: block;
+            margin-bottom: 0.5rem;
+        }
+        #media-container canvas:last-child {
+            margin-bottom: 0;
         }
     </style>
 </head>
@@ -34,6 +51,7 @@
     <header class="sticky top-0 w-full bg-white z-50 px-6 py-4 flex justify-between items-center shadow-sm">
         <!-- Logo -->
         <a href="https://wcea.education/" class="flex items-center gap-2">
+            <!-- Ensure you have logo.png in your assets folder -->
             <img src="assets/logo.png" alt="WCEA Logo" class="h-10 w-auto object-contain" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
             <!-- Fallback Logo if image is missing -->
             <div style="display:none;" class="items-center gap-2 text-green-700">
@@ -51,18 +69,18 @@
     </header>
 
     <!-- ================= FULLSCREEN NAVIGATION ================= -->
-    <div id="nav-overlay" class="nav-overlay fixed inset-0 bg-white z-[100] flex flex-col px-8 py-6 overflow-y-auto">
+    <div id="nav-overlay" class="nav-overlay">
         <!-- Close Button -->
-        <div class="flex justify-end mb-12">
+        <div class="flex justify-end mb-10">
             <button id="close-btn" class="text-gray-800 focus:outline-none hover:text-gray-500 transition" aria-label="Close Menu">
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-10 h-10">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-8 h-8">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
                 </svg>
             </button>
         </div>
 
         <!-- Links -->
-        <nav class="flex flex-col space-y-6 text-xl font-medium text-gray-800">
+        <nav class="flex flex-col space-y-5 text-base font-medium text-gray-800">
             <a href="https://wcea.education/" class="text-[#2b88c8] hover:text-blue-700 transition">Home</a>
             <a href="https://wcea.education/technology/" class="hover:text-[#2b88c8] transition">Technology</a>
             <a href="https://wcea.education/educator/" class="hover:text-[#2b88c8] transition">Educators</a>
@@ -77,34 +95,28 @@
     <!-- ================= MAIN CONTENT ================= -->
     <main class="flex-grow flex flex-col items-center py-10 px-4 w-full max-w-lg mx-auto">
         
-        <!-- DEFAULT VIEW -->
-        <div id="default-content" class="w-full flex flex-col items-center">
-            <!-- Certificate Display -->
-            <div class="w-full bg-blue-600 p-1.5 rounded-sm mb-6 shadow-md">
-                <!-- Placeholder image. Replace src with your actual certificate image -->
-                <img src="https://images.unsplash.com/photo-1589330694653-ded6df03f754?auto=format&fit=crop&q=80&w=800&h=600" alt="Certificate" class="w-full h-auto border-2 border-white object-cover">
+        <!-- Dynamic Content Container -->
+        <div id="certificate-view" class="w-full flex flex-col items-center hidden">
+            
+            <!-- Media Container (PDF or Image) -->
+            <div id="media-container" class="w-full mb-6 shadow-md rounded-sm overflow-hidden flex flex-col bg-white border border-gray-200">
+                <!-- Rendered PDF or Image will be injected here -->
             </div>
 
             <!-- Download Button -->
-            <button class="w-full bg-[#241c4d] hover:bg-[#1a1438] text-white font-medium py-3 rounded-md transition duration-300 mb-8">
+            <a id="download-btn" href="#" download class="w-full text-center bg-[#241c4d] hover:bg-[#1a1438] text-white font-medium py-3 rounded-md transition duration-300 mb-8 block">
                 Download
-            </button>
+            </a>
 
             <!-- Course Details Card -->
-            <div class="w-full border-2 border-gray-200 rounded-[2rem] p-6 sm:p-8 space-y-1.5 text-gray-700 text-sm sm:text-base font-medium shadow-sm">
-                <p>Course Name: TB Diagnostic Methods in Ethiopia</p>
-                <p>Date: 17th October 2026</p>
-                <p>Taken by: Mekdeles Daniel Aemro</p>
-                <p>Authorized on behalf of: Jhpiego</p>
-                <p>Duration: 03:00:00</p>
-                <p>Exam Score: 12 out of 12</p>
-                <p>CPD Points: 3</p>
+            <div id="details-card" class="w-full border-2 border-gray-200 rounded-[2rem] p-6 sm:p-8 space-y-1.5 text-gray-700 text-sm sm:text-base font-medium shadow-sm">
+                <!-- Injected via JS -->
             </div>
         </div>
 
-        <!-- PDF VIEW (Hidden by default, shown via JS) -->
-        <div id="pdf-container" class="hidden w-full h-[80vh]">
-            <!-- The PDF will be loaded here via JS -->
+        <!-- Loading/Redirect state -->
+        <div id="loading-state" class="w-full flex flex-col items-center justify-center py-20">
+            <p class="text-gray-500">Loading...</p>
         </div>
 
     </main>
@@ -116,7 +128,6 @@
             <!-- Column 1: Brand & Address -->
             <div class="space-y-4">
                 <div class="flex items-center gap-2 mb-6">
-                    <!-- Footer Logo -->
                     <div class="w-10 h-10 border-2 border-white rounded-full flex items-center justify-center font-bold text-xs text-white">WCEA</div>
                     <span class="font-bold text-sm leading-tight text-white">The World Continuing<br>Education Alliance</span>
                 </div>
@@ -182,52 +193,127 @@
 
     <!-- ================= JAVASCRIPT ================= -->
     <script>
+        // Configure PDF.js Worker
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+
+        // --- 1. Navigation Logic ---
+        const menuBtn = document.getElementById('menu-btn');
+        const closeBtn = document.getElementById('close-btn');
+        const navOverlay = document.getElementById('nav-overlay');
+
+        menuBtn.addEventListener('click', () => {
+            navOverlay.classList.add('active');
+            document.body.style.overflow = 'hidden';
+        });
+
+        closeBtn.addEventListener('click', () => {
+            navOverlay.classList.remove('active');
+            document.body.style.overflow = '';
+        });
+
+        // --- 2. Mock Database ---
+        const certificatesDB = {
+            "1792213537_63e67db3c9e811f185ca12b667b05ab4": {
+                courseName: "TB Diagnostic Methods in Ethiopia",
+                date: "17th October 2026",
+                takenBy: "Mekides Daniel Alemu",
+                authoredOnBehalfOf: "Jhpiego",
+                duration: "03:00:00",
+                examScore: "12 out of 12",
+                cpdPoints: "3",
+                assetType: "pdf" // Change to "png" if you want to test an image
+            },
+            "another_mock_id_123": {
+                courseName: "Advanced Infection Control",
+                date: "1st November 2026",
+                takenBy: "John Doe",
+                authoredOnBehalfOf: "WHO",
+                duration: "01:30:00",
+                examScore: "9 out of 10",
+                cpdPoints: "1.5",
+                assetType: "png"
+            }
+        };
+
+        // --- 3. URL Search Parameter Logic ---
         document.addEventListener('DOMContentLoaded', () => {
-            
-            // --- 1. Navigation Logic ---
-            const menuBtn = document.getElementById('menu-btn');
-            const closeBtn = document.getElementById('close-btn');
-            const navOverlay = document.getElementById('nav-overlay');
+            // Get the 'id' parameter from the URL query string (e.g., ?id=1792213537_...)
+            const urlParams = new URLSearchParams(window.location.search);
+            const certId = urlParams.get('id');
 
-            menuBtn.addEventListener('click', () => {
-                navOverlay.classList.add('active');
-                document.body.style.overflow = 'hidden'; // Prevent background scrolling
-            });
+            const viewContainer = document.getElementById('certificate-view');
+            const loadingState = document.getElementById('loading-state');
+            const mediaContainer = document.getElementById('media-container');
 
-            closeBtn.addEventListener('click', () => {
-                navOverlay.classList.remove('active');
-                document.body.style.overflow = ''; // Restore background scrolling
-            });
-
-            // --- 2. URL Routing / PDF Logic ---
-            const currentPath = window.location.pathname;
-            const targetPath = '/741dvzy6rxw2wxg8ivx3wzf6ibcewxsfyhbewchih';
-
-            if (currentPath.includes('741dvzy6rxw2wxg8ivx3wzf6ibcewxsfyhbewchih')) {
-                // Hide default certificate content
-                document.getElementById('default-content').classList.add('hidden');
+            // Check if the ID exists in our mock database
+            if (certId && certificatesDB[certId]) {
+                const data = certificatesDB[certId];
                 
-                // Show PDF container
-                const pdfContainer = document.getElementById('pdf-container');
-                pdfContainer.classList.remove('hidden');
-                
-                // Insert custom object for PDF viewing
-                // Assuming the PDF is named exactly the same as the ID in the assets folder
-                pdfContainer.innerHTML = `
-                    <object data="assets/741dvzy6rxw2wxg8ivx3wzf6ibcewxsfyhbewchih.pdf" type="application/pdf" width="100%" height="100%" class="rounded-lg shadow-md border border-gray-200">
-                        <p class="text-center mt-10 text-gray-500">
-                            Your browser does not support PDFs. 
-                            <a href="assets/741dvzy6rxw2wxg8ivx3wzf6ibcewxsfyhbewchih.pdf" class="text-blue-600 underline" download>Download the PDF</a>.
-                        </p>
-                    </object>
+                // Hide loading state, show content
+                loadingState.classList.add('hidden');
+                viewContainer.classList.remove('hidden');
+
+                // 1. Setup Download Link
+                const downloadBtn = document.getElementById('download-btn');
+                const assetUrl = `assets/${certId}.${data.assetType}`;
+                downloadBtn.href = assetUrl;
+
+                // 2. Render Media (PDF via pdf.js or Image)
+                if (data.assetType === 'pdf') {
+                    
+                    // Render PDF using PDF.js
+                    const loadingTask = pdfjsLib.getDocument(assetUrl);
+                    
+                    loadingTask.promise.then(function(pdf) {
+                        // Loop through all pages (usually just 1 for a certificate)
+                        for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
+                            pdf.getPage(pageNum).then(function(page) {
+                                // Adjust scale to fit container width nicely
+                                const viewport = page.getViewport({ scale: 1.5 });
+                                
+                                const canvas = document.createElement('canvas');
+                                const context = canvas.getContext('2d');
+                                canvas.height = viewport.height;
+                                canvas.width = viewport.width;
+                                canvas.className = "w-full h-auto shadow-sm";
+                                
+                                mediaContainer.appendChild(canvas);
+
+                                const renderContext = {
+                                    canvasContext: context,
+                                    viewport: viewport
+                                };
+                                page.render(renderContext);
+                            });
+                        }
+                    }).catch(function(error) {
+                        console.error("Error loading PDF: ", error);
+                        mediaContainer.innerHTML = `<p class="p-6 text-red-500 text-center">Failed to load PDF. <a href="${assetUrl}" class="underline">Click here to download instead.</a></p>`;
+                    });
+
+                } else if (data.assetType === 'png' || data.assetType === 'jpg') {
+                    // Render Image normally
+                    mediaContainer.innerHTML = `
+                        <img src="${assetUrl}" alt="Certificate for ${data.takenBy}" class="w-full h-auto object-cover">
+                    `;
+                }
+
+                // 3. Render Details Card
+                const detailsCard = document.getElementById('details-card');
+                detailsCard.innerHTML = `
+                    <p>Course Name: ${data.courseName}</p>
+                    <p>Date: ${data.date}</p>
+                    <p>Taken by: ${data.takenBy}</p>
+                    <p>Authorized on behalf of: ${data.authoredOnBehalfOf}</p>
+                    <p>Duration: ${data.duration}</p>
+                    <p>Exam Score: ${data.examScore}</p>
+                    <p>CPD Points: ${data.cpdPoints}</p>
                 `;
+            } else {
+                // If no 'id' parameter is found OR the ID doesn't exist in the DB, redirect immediately.
+                window.location.href = "https://wcea.education/";
             }
         });
-        
-        
-        
-        
-        
     </script>
 </body>
 </html>
